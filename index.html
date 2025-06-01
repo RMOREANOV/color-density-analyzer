@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PDF Color Density Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.7.107/pdf.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --background-color: #f0f2f5;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --success-color: #28a745;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+        }
+
+        #upload-container {
+            background: var(--card-background);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 2px dashed var(--border-color);
+            transition: border-color 0.3s, background-color 0.3s;
+            margin-bottom: 2rem;
+        }
+
+        #upload-container.dragover {
+            border-color: var(--primary-color);
+            background-color: #e9f2ff;
+        }
+
+        #upload-container.hidden {
+            display: none;
+        }
+
+        #pdf-upload {
+            display: none;
+        }
+
+        #upload-label {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        #upload-label svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        #status {
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 1rem auto 0;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #results-area {
+            width: 100%;
+        }
+
+        .pdf-result-block {
+            background: var(--card-background);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            text-align: left;
+        }
+
+        .pdf-result-block h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            word-break: break-all;
+        }
+
+        .page-grid {
+            margin-top: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .page-card {
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .page-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .info {
+            padding: 1rem;
+        }
+
+        .info strong {
+            color: var(--text-color);
+            font-size: 1.1rem;
+        }
+
+        .info p {
+            margin: 0.5rem 0 0;
+            line-height: 1.6;
+        }
+
+        .price {
+            font-weight: bold;
+            color: var(--success-color);
+            font-size: 1.1rem;
+        }
+
+        .pdf-subtotal {
+            margin-top: 1.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: right;
+            color: var(--primary-color);
+        }
+
+        #final-actions {
+            width: 100%;
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: var(--card-background);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: none;
+            /* Hidden initially */
+        }
+
+        #grand-total {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        #grand-total span {
+            color: var(--success-color);
+        }
+
+        #add-pdf-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        #add-pdf-btn:hover {
+            background-color: #357ABD;
+            transform: translateY(-2px);
+        }
+
+        .action-btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-left: 1rem;
+        }
+
+        .action-btn.secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .action-btn.secondary:hover {
+            background-color: #d48806;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Color Density Analyzer 🎨</h1>
+
+        <div id="upload-container">
+            <label for="pdf-upload" id="upload-label">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Select or drag PDF(s)
+            </label>
+            <input type="file" id="pdf-upload" accept="application/pdf" multiple>
+        </div>
+
+        <div id="status">
+            <div class="loader"></div>
+            <p id="status-text">Waiting for files...</p>
+        </div>
+
+        <div id="results-area"></div>
+
+        <div id="final-actions">
+            <div id="grand-total"></div>
+            <button id="add-pdf-btn">Add Another PDF</button>
+            <button id="reset-btn" class="action-btn secondary">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('pdf-upload');
+        const uploadContainer = document.getElementById('upload-container');
+        const statusText = document.getElementById('status-text');
+        const loader = document.querySelector('.loader');
+        const resultsArea = document.getElementById('results-area');
+        const finalActionsContainer = document.getElementById('final-actions');
+        const grandTotalDiv = document.getElementById('grand-total');
+        const addPdfBtn = document.getElementById('add-pdf-btn');
+
+        let grandTotalPrice = 0;
+
+        uploadContainer.addEventListener('dragover', (e) => { e.preventDefault(); uploadContainer.classList.add('dragover'); });
+        uploadContainer.addEventListener('dragleave', () => uploadContainer.classList.remove('dragover'));
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (event) => handleFiles(event.target.files));
+
+        addPdfBtn.addEventListener('click', () => fileInput.click());
+
+        const resetBtn = document.getElementById('reset-btn');
+
+        resetBtn.addEventListener('click', () => {
+            resultsArea.innerHTML = '';
+            statusText.textContent = 'Waiting for files...';
+            loader.style.display = 'none';
+            finalActionsContainer.style.display = 'none';
+            uploadContainer.classList.remove('hidden');
+            grandTotalPrice = 0;
+            grandTotalDiv.innerHTML = '';
+        });
+
+
+        function calculatePrice(density) {
+            const minDensity = 5, maxDensity = 70;
+            const minPrice = 0.30, maxPrice = 1.00;
+            if (density <= minDensity) return minPrice;
+            if (density >= maxDensity) return maxPrice;
+            const x = (density - minDensity) / (maxDensity - minDensity);
+            const k = 1.5;
+            const normalized = (1 - Math.exp(-k * x)) / (1 - Math.exp(-k));
+            let price = minPrice + normalized * (maxPrice - minPrice);
+            price = Math.ceil(price * 10) / 10;
+            console.log(Math.max(minPrice, Math.min(price, maxPrice)));
+            return Math.max(minPrice, Math.min(price, maxPrice));
+        }
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+
+            uploadContainer.classList.add('hidden');
+            loader.style.display = 'block';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type !== 'application/pdf') {
+                    statusText.textContent = `File '${file.name}' is not a PDF. Skipping.`;
+                    continue;
+                }
+                await processPdf(file, i + 1, files.length);
+            }
+
+            loader.style.display = 'none';
+            statusText.textContent = 'Analysis complete.';
+            finalActionsContainer.style.display = 'block';
+            fileInput.value = '';
+        }
+
+        async function processPdf(file, fileIndex, totalFiles) {
+            let currentPdfTotalPrice = 0;
+
+            const pdfBlock = document.createElement('div');
+            pdfBlock.className = 'pdf-result-block';
+
+            const pdfTitle = document.createElement('h2');
+            pdfTitle.textContent = `Results for: ${file.name}`;
+            pdfBlock.appendChild(pdfTitle);
+
+            const pageGrid = document.createElement('div');
+            pageGrid.className = 'page-grid';
+            pdfBlock.appendChild(pageGrid);
+
+            resultsArea.appendChild(pdfBlock);
+
+            try {
+                const reader = new FileReader();
+                const typedArray = await new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(new Uint8Array(reader.result));
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+
+                const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+                const numPages = pdf.numPages;
+
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                    statusText.textContent = `[File ${fileIndex}/${totalFiles}] Analyzing page ${pageNum}/${numPages}...`;
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 1.5 });
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+
+                    let nonWhitePixels = 0;
+                    const whiteThreshold = 252;
+                    const alphaThreshold = 0;
+
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        const r = pixels[i];
+                        const g = pixels[i + 1];
+                        const b = pixels[i + 2];
+                        const a = pixels[i + 3];
+
+                        if ((r < whiteThreshold || g < whiteThreshold || b < whiteThreshold) && a > alphaThreshold) {
+                            nonWhitePixels++;
+                        }
+                    }
+
+                    const totalPixels = canvas.width * canvas.height;
+                    const density = (nonWhitePixels / totalPixels) * 100;
+                    const price = calculatePrice(density);
+                    currentPdfTotalPrice += price;
+
+                    const previewCanvas = document.createElement('canvas');
+                    previewCanvas.width = canvas.width;
+                    previewCanvas.height = canvas.height;
+                    const previewCtx = previewCanvas.getContext('2d');
+                    previewCtx.putImageData(imageData, 0, 0);
+
+                    const pageCard = document.createElement('div');
+                    pageCard.className = 'page-card';
+                    pageCard.innerHTML = `
+                <img src="${previewCanvas.toDataURL('image/png')}" class="preview-image" alt="Page ${pageNum} preview">
+                <div class="info">
+                    <strong>Page ${pageNum}</strong>
+                    <p>Color density: ${density.toFixed(2)}%</p>
+                    <p>Price: <span class="price">S/ ${price.toFixed(2)}</span></p>
+                </div>
+            `;
+                    pageGrid.appendChild(pageCard);
+                }
+
+                const subtotalDiv = document.createElement('div');
+                subtotalDiv.className = 'pdf-subtotal';
+                subtotalDiv.textContent = `PDF Subtotal: S/ ${currentPdfTotalPrice.toFixed(2)}`;
+                pdfBlock.appendChild(subtotalDiv);
+
+                grandTotalPrice += currentPdfTotalPrice;
+                grandTotalDiv.innerHTML = `Grand Total: <span>S/ ${grandTotalPrice.toFixed(2)}</span>`;
+
+            } catch (error) {
+                console.error(`Error processing ${file.name}:`, error);
+                const errorDiv = document.createElement('p');
+                errorDiv.style.color = 'red';
+                errorDiv.textContent = 'There was an error processing this PDF.';
+                pdfBlock.appendChild(errorDiv);
+            }
+        }
+    </script>
+</body>
+
+</html>
