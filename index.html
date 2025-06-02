@@ -375,7 +375,7 @@
                 for (let pageNum = 1; pageNum <= numPages; pageNum++) {
                     statusText.textContent = `[File ${fileIndex}/${totalFiles}] Analyzing page ${pageNum}/${numPages}...`;
                     const page = await pdf.getPage(pageNum);
-                    const viewport = page.getViewport({ scale: 1.5 });
+                    const viewport = page.getViewport({ scale: 1 });
 
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
