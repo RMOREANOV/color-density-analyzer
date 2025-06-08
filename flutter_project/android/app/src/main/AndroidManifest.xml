@@ -12,19 +12,31 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="application/pdf"/>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="application/pdf"/>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.SEND_MULTIPLE"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="application/pdf"/>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
